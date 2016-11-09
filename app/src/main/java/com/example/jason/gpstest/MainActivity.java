@@ -19,13 +19,7 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 import cn.bmob.v3.Bmob;
 import cn.bmob.v3.exception.BmobException;
@@ -35,7 +29,6 @@ public class MainActivity extends Activity {
     private EditText editText;
     private LocationManager lm;
     private static final String TAG = "GpsActivity";
-    private  String urlPath="192.168.1.1";
     private String bmobID="1a0be343c7ba406c76aaaa2dabcfb598";
     @Override
     protected void onDestroy() {
@@ -232,17 +225,10 @@ public class MainActivity extends Activity {
             editText.append("\n不知道：");
             editText.append(String.valueOf(location.getProvider()));
 
-            Map<String,String> map=new HashMap<String,String>();//用集合来做，比字符串拼接来得直观
-            map.put("type", "save");
-            map.put("经度",String.valueOf(location.getLongitude()));
-            map.put("维度",String.valueOf(location.getLatitude()));
-
-
-try{
-    //postRequest(urlPath,map);
-    send2Bmob(location.getLongitude(),location.getLatitude());
-}
-catch (Exception e){
+    try{
+        send2Bmob(location.getLongitude(),location.getLatitude());
+    }
+    catch (Exception e){
     Log.i(TAG,e.getMessage());}
 
         } else {
@@ -287,38 +273,5 @@ catch (Exception e){
     }
 
 
-    //post请求，无文件长度大小限制
-    public static boolean postRequest(String urlPath,Map<String,String> map) throws Exception
-    {
-        StringBuilder builder=new StringBuilder(); //拼接字符
-        //拿出键值
-        if(map!=null && !map.isEmpty())
-        {
-            for(Map.Entry<String, String> param:map.entrySet())
-            {
-                builder.append(param.getKey()).append('=').append(URLEncoder.encode(param.getValue(), "utf-8")).append('&');
-            }
-            builder.deleteCharAt(builder.length()-1);
-        }
-        //下面的Content-Length: 是这个URL的二进制数据长度
-        byte b[]=builder.toString().getBytes();
-        URL url=new URL(urlPath);
-        HttpURLConnection con=(HttpURLConnection)url.openConnection();
-        con.setRequestMethod("POST");
-        con.setReadTimeout(5*1000);
-        con.setDoOutput(true);//打开向外输出
-        con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");//内容类型
-        con.setRequestProperty("Content-Length",String.valueOf(b.length));//长度
-        OutputStream outStream=con.getOutputStream();
-        outStream.write(b);//写入数据
-        outStream.flush();//刷新内存
-        outStream.close();
-        //状态码是不成功
-        if(con.getResponseCode()==200)
-        {
-            return true;
-        }
-        return false;
 
-    }
 }
