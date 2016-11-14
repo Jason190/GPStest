@@ -22,4 +22,25 @@
         android:layout_height="wrap_content"
         android:id="@+id/textView2"
         android:layout_below="@+id/textView" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:text="your name"
+        android:ems="10"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="59dp"
+        android:id="@+id/editText1" />
+
+    <ToggleButton
+        android:text="ToggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/toggleButton"
+        android:checked="false" />
+
 </RelativeLayout>

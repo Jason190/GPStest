@@ -12,12 +12,20 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.Iterator;
 
@@ -27,9 +35,18 @@ import cn.bmob.v3.listener.SaveListener;
 
 public class MainActivity extends Activity {
     private EditText editText;
+    private EditText edittext1;
+    private ToggleButton tb1;
+    private boolean tbflag = false;
     private LocationManager lm;
     private static final String TAG = "GpsActivity";
-    private String bmobID="1a0be343c7ba406c76aaaa2dabcfb598";
+    private String bmobID = "1a0be343c7ba406c76aaaa2dabcfb598";
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
+
     @Override
     protected void onDestroy() {
         // TODO Auto-generated method stub
@@ -52,9 +69,30 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Bmob.initialize(this,bmobID);
+        Bmob.initialize(this, bmobID);
         editText = (EditText) findViewById(R.id.textView);
+
+        tb1 = (ToggleButton) findViewById(R.id.toggleButton);
+        tb1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView,
+                                         boolean isChecked) {
+                tb1.setChecked(isChecked);
+                if (isChecked == true) {
+                    tbflag = true;
+                    edittext1 = (EditText) findViewById(R.id.editText1);
+                    String edt = edittext1.getText().toString();
+                    getUserAndTablename(edt);
+
+                } else {
+                    tbflag = false;
+                }
+            }
+
+        });
+
+
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
 
         // 判断GPS是否正常启动
         if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -92,7 +130,10 @@ public class MainActivity extends Activity {
 
         // 1秒更新一次，或最小位移变化超过1米更新一次；
         // 注意：此处更新准确度非常低，推荐在service里面启动一个Thread，在run中sleep(10000);然后执行handler.sendMessage(),更新位置
-        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1500, 0, locationListener);
+        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 0, locationListener);
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     // 位置监听
@@ -200,7 +241,9 @@ public class MainActivity extends Activity {
                     Log.i(TAG, "定位结束");
                     break;
             }
-        };
+        }
+
+        ;
     };
 
     /**
@@ -209,6 +252,14 @@ public class MainActivity extends Activity {
      * @param location
      */
     private void updateView(Location location) {
+
+        if (tbflag == false) {
+            return;
+        }
+        if (location == null) {
+            return;
+        }
+
         if (location != null) {
             editText.setText("设备位置信息\n\n经度：");
             editText.append(String.valueOf(location.getLongitude()));
@@ -222,30 +273,38 @@ public class MainActivity extends Activity {
             editText.append(String.valueOf(location.getBearing()));
             editText.append("\n时间：");
             editText.append(String.valueOf(location.getTime()));
-            editText.append("\n不知道：");
+            editText.append("\n定位用：");
             editText.append(String.valueOf(location.getProvider()));
 
-    try{
-        send2Bmob(location.getLongitude(),location.getLatitude());
-    }
-    catch (Exception e){
-    Log.i(TAG,e.getMessage());}
+            try {
+                edittext1 = (EditText) findViewById(R.id.editText1);
+                String edt = edittext1.getText().toString();
+                //getUserAndTablename(edt);
+
+                send2Bmob(edt, location.getLongitude(), location.getLatitude());
+            } catch (Exception e) {
+                Log.i(TAG, e.getMessage());
+            }
 
         } else {
             // 清空EditText对象
             editText.getEditableText().clear();
         }
     }
-    private void send2Bmob(Number lon,Number lat){
-        gpsPoint gp=new gpsPoint();
+
+    private void send2Bmob(String name, Number lon, Number lat) {
+        gpsPoint gp = new gpsPoint(name);
+        gp.setName(name);
         gp.setLat(lat);
         gp.setLon(lon);
         gp.save(new SaveListener<String>() {
             @Override
             public void done(String s, BmobException e) {
-                if (e==null){
-
-                }else {}
+                if (e == null) {
+                    Log.d("TAG", "1111111");
+                } else {
+                    Log.d("TAG", "2222222");
+                }
             }
         });
     }
@@ -272,6 +331,55 @@ public class MainActivity extends Activity {
         return criteria;
     }
 
+    public void getUserAndTablename(String name) {
+        positionUpdater pu = new positionUpdater();
+        pu.setName(name);
+//        pu.save();
+        pu.save(new SaveListener<String>() {
+            @Override
+            public void done(String objectID, BmobException e) {
+                if (e == null) {
 
+                } else {
+                    Log.i("bmob","失败："+e.getMessage()+","+e.getErrorCode());
+                }
+            }
+        });
+    }
 
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Main Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        AppIndex.AppIndexApi.start(client, getIndexApiAction());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(client, getIndexApiAction());
+        client.disconnect();
+    }
 }
