@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -381,5 +382,12 @@ public class MainActivity extends Activity {
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
+    }
+
+    public void onLunch2(View view) {
+        Intent intent=new Intent();
+        intent.setClass(this,logActivity.class);
+        startActivity(intent);
+        setTitle("登陆");
     }
 }
