@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">GPStest</string>
     <string name="title_activity_log">logActivity</string>
+    <string name="title_activity_map">mapActivity</string>
 </resources>

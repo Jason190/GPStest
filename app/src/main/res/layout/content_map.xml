@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/content_map"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    android:paddingTop="55dp"
+    android:orientation="vertical"
+    tools:context="com.example.jason.gpstest.mapActivity"
+    tools:showIn="@layout/activity_map">
+    <com.amap.api.maps.MapView
+
+        android:id="@+id/map"
+
+        android:layout_width="match_parent"
+
+        android:layout_height="match_parent"/>
+</LinearLayout>

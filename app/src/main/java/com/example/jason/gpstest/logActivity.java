@@ -1,8 +1,8 @@
 package com.example.jason.gpstest;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
@@ -25,8 +25,8 @@ public class logActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+//        setSupportActionBar(toolbar);
         Bmob.initialize(this, bmobID);
 
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -55,7 +55,13 @@ public class logActivity extends AppCompatActivity {
                     for (positionUpdater pu:list){
 
                         if (pu.getPwd().toString().equals(name[1])){
-                            showToast("用户名密码正确");
+                            //showToast("用户名密码正确");
+                            Intent intent=new Intent();
+                            intent.putExtra("userName",name[0]);
+                            intent.putExtra("pwd",name[1]);
+                            intent.setClass(logActivity.this,mapActivity.class);
+                            startActivity(intent);
+                            setTitle("地图");
                         }
                         else {
                             showToast("密码错误");

@@ -1,7 +1,6 @@
 package com.example.jason.gpstest;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,81 +15,63 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.view.View;
-import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.Toast;
-import android.widget.ToggleButton;
 
+import com.amap.api.maps.AMap;
+import com.amap.api.maps.CameraUpdateFactory;
+import com.amap.api.maps.CoordinateConverter;
+import com.amap.api.maps.MapView;
+import com.amap.api.maps.model.CameraPosition;
+import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.Marker;
+import com.amap.api.maps.model.MarkerOptions;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import cn.bmob.v3.Bmob;
+import cn.bmob.v3.BmobQuery;
+import cn.bmob.v3.BmobRealTimeData;
 import cn.bmob.v3.exception.BmobException;
+import cn.bmob.v3.listener.FindListener;
 import cn.bmob.v3.listener.SaveListener;
+import cn.bmob.v3.listener.ValueEventListener;
 
-public class MainActivity extends Activity {
-    private EditText editText;
-    private EditText edittext1;
-    private ToggleButton tb1;
-    private boolean tbflag = false;
+public class mapActivity extends AppCompatActivity {
+    MapView mMapView=null;
+    String userName=null;
     private LocationManager lm;
-    private static final String TAG = "GpsActivity";
-    private String bmobID = "1a0be343c7ba406c76aaaa2dabcfb598";
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
     private GoogleApiClient client;
-
+    boolean fristLocation=false;
+    private static final String TAG = "mapActivity";
+    ArrayList<String> allPositionUpdater=null;
+    String bmobID="1a0be343c7ba406c76aaaa2dabcfb598";
     @Override
-    protected void onDestroy() {
-        // TODO Auto-generated method stub
-        super.onDestroy();
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        lm.removeUpdates(locationListener);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_map);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle("地图展示");
+        setSupportActionBar(toolbar);
 
-        Bmob.initialize(this, bmobID);
-        editText = (EditText) findViewById(R.id.textView);
+        mMapView=(MapView)findViewById(R.id.map);
+        mMapView.onCreate(savedInstanceState);
 
-        tb1 = (ToggleButton) findViewById(R.id.toggleButton);
-        tb1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView,
-                                         boolean isChecked) {
-                tb1.setChecked(isChecked);
-                if (isChecked == true) {
-                    tbflag = true;
-                    edittext1 = (EditText) findViewById(R.id.editText1);
-                    String edt = edittext1.getText().toString();
-                    getUserAndTablename(edt);
+        Intent getIntent=getIntent();
+        userName=getIntent.getStringExtra("userName");
 
-                } else {
-                    tbflag = false;
-                }
-            }
-
-        });
-
+        Bmob.initialize(this,bmobID);
 
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
@@ -118,8 +99,8 @@ public class MainActivity extends Activity {
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        Location location = lm.getLastKnownLocation(bestProvider);
-        updateView(location);
+        //Location location = lm.getLastKnownLocation(bestProvider);
+        //updateView(location);
         // 监听状态
         lm.addGpsStatusListener(listener);
         // 绑定监听，有4个参数
@@ -135,7 +116,10 @@ public class MainActivity extends Activity {
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+
+        getAllPositionUpdater();
     }
+
 
     // 位置监听
     private LocationListener locationListener = new LocationListener() {
@@ -144,7 +128,8 @@ public class MainActivity extends Activity {
          * 位置信息变化时触发
          */
         public void onLocationChanged(Location location) {
-            updateView(location);
+            //updateView(location);
+            send2Bmob(userName,location.getLongitude(),location.getLatitude());
             Log.i(TAG, "时间：" + location.getTime());
             Log.i(TAG, "经度：" + location.getLongitude());
             Log.i(TAG, "纬度：" + location.getLatitude());
@@ -175,7 +160,7 @@ public class MainActivity extends Activity {
          * GPS开启时触发
          */
         public void onProviderEnabled(String provider) {
-            if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(mapActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mapActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -186,14 +171,14 @@ public class MainActivity extends Activity {
                 return;
             }
             Location location = lm.getLastKnownLocation(provider);
-            updateView(location);
+            //updateView(location);
         }
 
         /**
          * GPS禁用时触发
          */
         public void onProviderDisabled(String provider) {
-            updateView(null);
+
         }
 
     };
@@ -210,7 +195,7 @@ public class MainActivity extends Activity {
                 case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
                     Log.i(TAG, "卫星状态改变");
                     // 获取当前状态
-                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(mapActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                         // TODO: Consider calling
                         //    ActivityCompat#requestPermissions
                         // here to request the missing permissions, and then overriding
@@ -246,53 +231,6 @@ public class MainActivity extends Activity {
 
         ;
     };
-
-    /**
-     * 实时更新文本内容
-     *
-     * @param location
-     */
-    private void updateView(Location location) {
-
-        if (tbflag == false) {
-            return;
-        }
-        if (location == null) {
-            return;
-        }
-
-        if (location != null) {
-            editText.setText("设备位置信息\n\n经度：");
-            editText.append(String.valueOf(location.getLongitude()));
-            editText.append("\n纬度：");
-            editText.append(String.valueOf(location.getLatitude()));
-            editText.append("\n高度：");
-            editText.append(String.valueOf(location.getAltitude()));
-            editText.append("\n速度：");
-            editText.append(String.valueOf(location.getSpeed()));
-            editText.append("\n方位：");
-            editText.append(String.valueOf(location.getBearing()));
-            editText.append("\n时间：");
-            editText.append(String.valueOf(location.getTime()));
-            editText.append("\n定位用：");
-            editText.append(String.valueOf(location.getProvider()));
-
-            try {
-                edittext1 = (EditText) findViewById(R.id.editText1);
-                String edt = edittext1.getText().toString();
-                //getUserAndTablename(edt);
-
-                send2Bmob(edt, location.getLongitude(), location.getLatitude());
-            } catch (Exception e) {
-                Log.i(TAG, e.getMessage());
-            }
-
-        } else {
-            // 清空EditText对象
-            editText.getEditableText().clear();
-        }
-    }
-
     private void send2Bmob(String name, Number lon, Number lat) {
         gpsPoint gp = new gpsPoint(name);
         gp.setName(name);
@@ -383,11 +321,133 @@ public class MainActivity extends Activity {
         AppIndex.AppIndexApi.end(client, getIndexApiAction());
         client.disconnect();
     }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //在activity执行onDestroy时执行mMapView.onDestroy()，实现地图生命周期管理
+        mMapView.onDestroy();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        lm.removeUpdates(locationListener);
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        //在activity执行onResume时执行mMapView.onResume ()，实现地图生命周期管理
+        mMapView.onResume();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //在activity执行onPause时执行mMapView.onPause ()，实现地图生命周期管理
+        mMapView.onPause();
+    }
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，实现地图生命周期管理
+        mMapView.onSaveInstanceState(outState);
+    }
 
-    public void onLunch2(View view) {
-        Intent intent=new Intent();
-        intent.setClass(this,logActivity.class);
-        startActivity(intent);
-        setTitle("登陆");
+    public void getBmobRealTime(String mUserName){
+        final BmobRealTimeData brtd=new BmobRealTimeData();
+        final String mmUserName=mUserName;
+        brtd.start(new ValueEventListener() {
+            @Override
+            public void onConnectCompleted(Exception e) {
+                if(brtd.isConnected()){
+                    brtd.subTableUpdate(mmUserName);
+                }
+            }
+
+            @Override
+            public void onDataChange(JSONObject jsonObject) {
+                //showToast(jsonObject.toString());
+                String lon=null,lat=null,tablename=null;
+                JSONObject data=null;
+                try{
+                    data=jsonObject.optJSONObject("data");
+                    tablename=jsonObject.getString("tableName");
+                    lon=data.getString("lon");
+                    lat=data.getString("lat");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                if (!lon.equals(null)&&!lat.equals(null)){
+                    updatePoistion(new LatLng(Double.parseDouble(lat),Double.parseDouble(lon)),tablename);
+                }
+            }
+        });
+    }
+
+    public void updatePoistion(LatLng position,String mUserName){
+        AMap map=mMapView.getMap();
+        List<Marker> mMarkers= map.getMapScreenMarkers();
+        for (Marker mm:mMarkers
+             ) {
+           if( mm.getTitle().equals(mUserName)){
+               mm.remove();
+               break;
+           }
+        }
+
+        Marker marker=null;
+        //map.clear();
+        try{marker.remove();}catch (Exception ex){}
+        LatLng gaodePosition=coordConvert(position, CoordinateConverter.CoordType.GPS);
+        marker=map.addMarker(new MarkerOptions().
+                                position(gaodePosition).
+                                title(mUserName).
+                                visible(true).
+                                snippet("DefaultMarker"));
+        if(!fristLocation){
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(new CameraPosition(
+                    gaodePosition, 15, 0, 0)));
+            fristLocation=true;
+        }
+    }
+    private LatLng coordConvert(LatLng sourceLatLng, CoordinateConverter.CoordType coord ) {
+        CoordinateConverter converter  = new CoordinateConverter(this);
+        // CoordType.GPS 待转换坐标类型
+        converter.from(coord);
+        // sourceLatLng待转换坐标点
+        converter.coord(sourceLatLng);
+        // 执行转换操作
+        LatLng desLatLng = converter.convert();
+        return desLatLng;
+    }
+    private void getAllPositionUpdater(){
+        BmobQuery<positionUpdater> query =new BmobQuery<positionUpdater>();
+        query.addQueryKeys("name");
+        query.setLimit(50);
+        query.findObjects(new FindListener<positionUpdater>() {
+            @Override
+            public void done(List<positionUpdater> list, BmobException e) {
+                if (e==null){
+                    for (positionUpdater pu:list){
+                       //allPositionUpdater.add(pu.getName()) ;
+                        getBmobRealTime(pu.getName());
+                    }
+                    //取得了用户名列表之后
+
+                }
+                else{
+                    showToast("拉取用户名列表异常");
+                }
+            }
+        });
+
+    }
+
+    private void showToast(String msg){
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 }

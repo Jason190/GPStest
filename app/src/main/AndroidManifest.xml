@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- 允许读取手机状态 用于创建BmobInstallation -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- 允许程序访问CellID或WiFi热点来获取粗略的位置 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -23,7 +25,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name=".logActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -37,10 +39,13 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="f763fffd91c5ae16b9ed99f541782224" />
 
         <activity
-            android:name=".logActivity"
-            android:label="@string/title_activity_log"
+            android:name=".mapActivity"
+            android:label="@string/title_activity_map"
             android:theme="@style/AppTheme.NoActionBar"></activity>
     </application>
 
